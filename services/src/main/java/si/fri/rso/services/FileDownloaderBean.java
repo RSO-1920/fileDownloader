@@ -1,8 +1,5 @@
 package si.fri.rso.services;
-
-
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;

@@ -1,4 +1,11 @@
 package si.fri.rso.api.v1.controler;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Metered;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 import si.fri.rso.services.FileDownloaderBean;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -19,6 +26,23 @@ public class FileDownloaderControler {
     HttpServletRequest requestheader;
 
     @GET
+    @Operation(description = "File display", summary = "displaying files in browser", tags = "file, in, browser", responses = {
+            @ApiResponse(responseCode = "200",
+                    description = "show file",
+                    content = @Content( schema = @Schema(implementation = InputStream.class))
+            ),
+            @ApiResponse(responseCode = "500",
+                    description = "error getting file",
+                    content = @Content( schema = @Schema(implementation = String.class))
+            ),
+            @ApiResponse(responseCode = "444",
+                    description = "file params not given",
+                    content = @Content( schema = @Schema(implementation = String.class))
+            ),
+    })
+    @Metered(name = "file__show_metered")
+    @Timed(name = "file_show_times")
+    @Counted(name = "file_show_header")
     @Path("showInBrowser/{bucketname}/{filename}")
     @Produces("image/png")
     public Response showInBrowser(@PathParam("bucketname") String bucketName, @PathParam("filename") String fileName) {
@@ -32,6 +56,10 @@ public class FileDownloaderControler {
         String fileType = fileTypeArr[fileTypeArr.length - 1].toLowerCase();
 
         InputStream fileObject = this.fileDownloaderBean.getFile(bucketName, fileName, requestHeader);
+
+        if (fileObject == null) {
+            return Response.status(500).entity("file storage api not reachable").build();
+        }
 
         System.out.println("filetype: " + fileType);
 
@@ -56,6 +84,23 @@ public class FileDownloaderControler {
     }
 
     @GET
+    @Operation(description = "File download", summary = "download file to user machine", tags = "file, download", responses = {
+            @ApiResponse(responseCode = "200",
+                    description = "file download",
+                    content = @Content( schema = @Schema(implementation = InputStream.class))
+            ),
+            @ApiResponse(responseCode = "500",
+                    description = "error getting file",
+                    content = @Content( schema = @Schema(implementation = String.class))
+            ),
+            @ApiResponse(responseCode = "444",
+                    description = "file params not given",
+                    content = @Content( schema = @Schema(implementation = String.class))
+            ),
+    })
+    @Metered(name = "file__download_metered")
+    @Timed(name = "file_download_times")
+    @Counted(name = "file_download_header")
     @Path("download/{bucketname}/{filename}")
     public Response getFile(@PathParam("bucketname") String bucketName, @PathParam("filename") String fileName){
         System.out.println(bucketName);
@@ -70,7 +115,7 @@ public class FileDownloaderControler {
         Object fileObject = this.fileDownloaderBean.getFile(bucketName, fileName, requestHeader);
 
         if (fileObject == null) {
-            Response.status(500).entity("file storage api not reachable").build();
+            return Response.status(500).entity("file storage api not reachable").build();
         }
 
         Response.ResponseBuilder response = Response.ok(fileObject);
