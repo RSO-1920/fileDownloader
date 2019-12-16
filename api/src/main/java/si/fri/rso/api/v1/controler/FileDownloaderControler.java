@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
@@ -46,6 +47,20 @@ public class FileDownloaderControler {
     public Response TestMe(){
         return Response.status(777).entity("Test succesfull").build();
     }
+
+    @GET
+    @Path("/pdf")
+    @Produces("application/pdf")
+    public javax.ws.rs.core.Response getPdf() throws Exception
+    {
+        File file = new File("test.pdf");
+        FileInputStream fileInputStream = new FileInputStream(file);
+        Response.ResponseBuilder responseBuilder = Response.ok((Object) fileInputStream);
+        responseBuilder.type("application/pdf");
+        responseBuilder.header("Content-Disposition", "filename=test.pdf");
+        return responseBuilder.build();
+    }
+
 
     @GET
     @Path("showInBrowser")
@@ -116,7 +131,7 @@ public class FileDownloaderControler {
         }catch (WebApplicationException | ProcessingException e) {
             // e.printStackTrace();
             System.out.println("api not reachable: " + request);
-            return Response.status(444, "File id od channel id was not given! ").build();
+            return Response.status(444, "Api not reachable ").build();
         }
 
         // iz multiparta dobi file
