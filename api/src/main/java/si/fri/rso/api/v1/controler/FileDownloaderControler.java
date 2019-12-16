@@ -5,6 +5,7 @@ import si.fri.rso.services.FileDownloaderBean;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
@@ -12,7 +13,10 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,6 +47,29 @@ public class FileDownloaderControler {
         return Response.status(777).entity("Test succesfull").build();
     }
 
+    @GET
+    @Path("showInBrowser")
+    @Produces("image/png")
+    public Response showInBrowser() {
+
+        BufferedImage image;
+
+        try
+        {
+            image = ImageIO.read(new File("download.png")); // eventually C:\\ImageTest\\pic2.jpg
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            byte[] imageData = baos.toByteArray();
+            return Response.ok(imageData).build();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return Response.ok("error").build();
+        }
+        // return Response.ok(new ByteArrayInputStream(imageData)).build();
+
+    }
 
     @GET
     @Path("file")
