@@ -1,157 +1,81 @@
 package si.fri.rso.api.v1.controler;
-
-import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import si.fri.rso.services.FileDownloaderBean;
-
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Optional;
+import java.io.*;
 import java.util.UUID;
 
 @ApplicationScoped
-@Path("/download")
+@Path("/file")
 public class FileDownloaderControler {
 
     @Inject
     private FileDownloaderBean fileDownloaderBean;
 
     @Inject
-    @DiscoverService(value = "rso1920-fileStorage")
-    private Optional<String> url;
-
-    private Client httpClient;
-    @PostConstruct
-    private void init(){
-        this.httpClient = ClientBuilder.newClient();
-    }
-
-    @Inject
     HttpServletRequest requestheader;
 
     @GET
-    @Path("test")
-    public Response TestMe(){
-        return Response.status(777).entity("Test succesfull").build();
-    }
-
-    @GET
-    @Path("/pdf")
-    @Produces("application/pdf")
-    public javax.ws.rs.core.Response getPdf() throws Exception
-    {
-        File file = new File("test.pdf");
-        FileInputStream fileInputStream = new FileInputStream(file);
-        Response.ResponseBuilder responseBuilder = Response.ok((Object) fileInputStream);
-        responseBuilder.type("application/pdf");
-        responseBuilder.header("Content-Disposition", "filename=test.pdf");
-        return responseBuilder.build();
-    }
-
-
-    @GET
-    @Path("showInBrowser")
+    @Path("showInBrowser/{bucketname}/{filename}")
     @Produces("image/png")
-    public Response showInBrowser() {
-
-        BufferedImage image;
-
-        try
-        {
-            image = ImageIO.read(new File("download.png")); // eventually C:\\ImageTest\\pic2.jpg
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
-            byte[] imageData = baos.toByteArray();
-            return Response.ok(imageData).build();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-            return Response.ok("error").build();
-        }
-        // return Response.ok(new ByteArrayInputStream(imageData)).build();
-
-    }
-
-    @GET
-    @Path("file")
-    public Response getFile(@QueryParam("channelId") String channelId, @QueryParam("fileId") String fileId){
-        if (fileId == null || channelId == null ){
-            return Response.status(444, "File id od channel id was not given! ").build();
-        }
-        //File file = this.fileDownloaderBean.downloadFile(fileId);
-
-        // TODO: Klic na pencata, da pove če je file_id veljaven
-        System.out.println(url);
-        String Davidov_url;
-        if (url.isPresent()) {
-            Davidov_url = url.get();
-        }
-        else{
+    public Response showInBrowser(@PathParam("bucketname") String bucketName, @PathParam("filename") String fileName) {
+        if (bucketName == null || fileName == null ){
             return Response.status(444, "File id od channel id was not given! ").build();
         }
         String requestHeader = requestheader.getHeader("uniqueRequestId");
-        System.out.println("getting file: "+ fileId);
+        System.out.println("getting file: "+ fileName);
+        requestHeader = requestHeader != null ? requestHeader : UUID.randomUUID().toString();
+        String[] fileTypeArr = fileName.split("\\.");
+        String fileType = fileTypeArr[fileTypeArr.length - 1].toLowerCase();
+
+        InputStream fileObject = this.fileDownloaderBean.getFile(bucketName, fileName, requestHeader);
+
+        System.out.println("filetype: " + fileType);
+
+        Response.ResponseBuilder responseBuilder = Response.ok((Object) fileObject);
+
+        switch (fileType) {
+            case "jpg":
+            case "png":
+                System.out.println("IMAGE");
+                responseBuilder.type("image/"+fileType);
+                break;
+            case "pdf":
+                System.out.println("PDF");
+                responseBuilder.type("application/pdf");
+                break;
+            default:
+                System.out.println("OTHER");
+                responseBuilder.type("text/plain");
+        }
+        responseBuilder.header("Content-Disposition", "filename="+fileName);
+        return responseBuilder.build();
+    }
+
+    @GET
+    @Path("download/{bucketname}/{filename}")
+    public Response getFile(@PathParam("bucketname") String bucketName, @PathParam("filename") String fileName){
+        System.out.println(bucketName);
+        System.out.println(fileName);
+        if (bucketName == null || fileName == null ){
+            return Response.status(444, "File id od channel id was not given! ").build();
+        }
+        String requestHeader = requestheader.getHeader("uniqueRequestId");
+        System.out.println("getting file: "+ fileName);
         requestHeader = requestHeader != null ? requestHeader : UUID.randomUUID().toString();
 
-        String request = Davidov_url+"/v1/fileTransfer/"+channelId+"/"+fileId;
-        System.out.println(request);
-        String requestUniqueID = requestHeader;
-        try{
-            Response success = httpClient
-                    .target(request)
-                    .request(MediaType.MULTIPART_FORM_DATA_TYPE)
-                    .header("uniqueRequestId", requestUniqueID)
-                    .get();
-            if (success.getStatus() == 200){
-                Response.ResponseBuilder response = Response.ok((Object) success.getEntity());
-                response.header("Content-Disposition", "attachment; filename="+fileId);
-                return response.build();
-                // return success;
-            }
-            else{
-                return Response.status(success.getStatus(),
-                        "Status of FileStorage is: "+ success.getStatus()).build();
-            }
+        Object fileObject = this.fileDownloaderBean.getFile(bucketName, fileName, requestHeader);
 
-
-        }catch (WebApplicationException | ProcessingException e) {
-            // e.printStackTrace();
-            System.out.println("api not reachable: " + request);
-            return Response.status(444, "Api not reachable ").build();
+        if (fileObject == null) {
+            Response.status(500).entity("file storage api not reachable").build();
         }
 
-        // iz multiparta dobi file
-        //File file  = new File(fileId);
-        //Response.ResponseBuilder response = Response.ok((Object) file);
-        //response.header("Content-Disposition",
-        //        "attachment; filename="+fileId);
-        //return response.build();
+        Response.ResponseBuilder response = Response.ok(fileObject);
+        response.header("Content-Disposition", "attachment; filename="+fileName);
+        return response.build();
 
     }
-    /*
-    TODO:
-        download file
-
-         1. dobiš path parameter
-         2. kličeš penca.getfile
-         3. if response = 200 and file is not null
-         4. download file ((header parameter, attachment file)) -- google it
-         5. response return file, status 200
-
-
-     */
 }
