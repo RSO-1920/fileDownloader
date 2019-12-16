@@ -62,7 +62,7 @@ public class FileDownloaderControler {
             return Response.status(444, "File id od channel id was not given! ").build();
         }
         String requestHeader = requestheader.getHeader("uniqueRequestId");
-        System.out.println("Deleting file: "+ fileId);
+        System.out.println("getting file: "+ fileId);
         requestHeader = requestHeader != null ? requestHeader : UUID.randomUUID().toString();
 
         String request = Davidov_url+"/v1/fileTransfer/"+channelId+"/"+fileId;
@@ -75,7 +75,10 @@ public class FileDownloaderControler {
                     .header("uniqueRequestId", requestUniqueID)
                     .get();
             if (success.getStatus() == 200){
-                return success;
+                Response.ResponseBuilder response = Response.ok((Object) success.getEntity());
+                response.header("Content-Disposition", "attachment; filename="+fileId);
+                return response.build();
+                // return success;
             }
             else{
                 return Response.status(success.getStatus(),
