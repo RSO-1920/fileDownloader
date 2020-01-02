@@ -12,6 +12,10 @@ kumuluzee:
     base-url: http://localhost:8079/
     http:
       port: 8079
+  cors-filter:
+    servlet:
+      allow-generic-http-requests: true
+      allow-origin: "*"
   discovery:
     etcd:
       hosts: http://localhost:2379

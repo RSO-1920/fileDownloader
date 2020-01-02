@@ -32,6 +32,8 @@
         <kumuluzee-fault-tolerance.version>2.0.1</kumuluzee-fault-tolerance.version>
         <aws.version>1.11.668</aws.version>
         <kumuluzee-openapi.version>1.0.1</kumuluzee-openapi.version>
+
+        <kumuluzee-cors.varsion>1.1.0-SNAPSHOT</kumuluzee-cors.varsion>
     </properties>
 
     <dependencyManagement>
@@ -146,6 +148,10 @@
             <artifactId>kumuluzee-openapi-ui</artifactId>
             <version>${kumuluzee-openapi.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.kumuluz.ee.cors</groupId>
+            <artifactId>kumuluzee-cors</artifactId>
+            <version>${kumuluzee-cors.varsion}</version>
+        </dependency>
     </dependencies>
 </project>
